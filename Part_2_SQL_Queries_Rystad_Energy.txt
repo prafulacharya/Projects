@@ -1,0 +1,126 @@
+##############SQL Q1 --> Creating Gom_Production Table###############
+
+CREATE TABLE GoM_Production(
+  Lease_Number VARCHAR(50) not NULL,
+  Production_Date DATE NOT NULL,
+  Product_Code CHAR(1) NOT NULL,
+  Mon_Oil_Volume VARCHAR(12),
+  Mon_Gas_Volume VARCHAR(12),
+  Operator_Number VARCHAR(8) not NULL,
+  ##PRIMARY KEY (Lease_Number)
+);
+
+=====================================================================================================================
+
+###########SQL Q2A--> Query to check duplicate rows##################################################################
+
+SELECT Lease_Expiration_Date,Block_Max_Water_Depth,Area_Code, COUNT(Lease_number)
+FROM Lease_info
+GROUP BY Lease_Expiration_Date,Block_Max_Water_Depth,Area_Code
+HAVING COUNT(Lease_number)>1;
+
+###########SQL Q2B--->Query to get total oil productin in 2019 of area EC############################################
+
+
+SELECT SUM(GP.mon_oil_volume) from GoM_Production as GP
+inner JOIN Lease_info as LI on LI.Lease_number=GP.Lease_number
+where YEAR(GP.Production_Date)=2019 and LI.Area_Code='EC';
+
+############SQL Q2C --->Query the not expired leases given that leases are in HI and MC regions(witin 100-200 feet)####
+
+1.Filter the regions.
+2.Return the count of lease number whos expiration is null.
+
+with regions as(select * from Lease_info 
+where Area_Code in ('HI',SM'))
+                    
+SELECT count(lease_number) from regions
+where cte.Lease_Expiration_Date is NULL;
+
+======================================================================================================================
+
+#############SQL Q3A--->Query to diplay total oil production for each Area, Year, Month##############################
+
+1.Filter data for oil production for each area, year and month.
+
+select SUM(GP.mon_oil_volume),LI.Area_Code, YEAR(GP.Production_Date) as year1920, MONTH(GP.production_date) as mth
+from GoM_Production as GP
+INNER JOIN Lease_info as LI on GP.lease_number=LI.lease_number
+GROUP by LI.Area_Code, YEAR(GP.Production_Date), MONTH(GP.production_date)
+
+#############SQL Q3B--->Query to format/metric into thousands######################################################
+
+1.IF volume is greater than 100O then volume divided by days(31 or 28 or 30) and conctenate "T" whcih represents thousand.
+2. Else keep the same data. 
+
+
+select SUM(CASE WHEN GP.mon_oil_volume)>'1000' then GP.mon_oil_volume/CL.Days + 'T'
+ELSE GP.mon_oil_volume
+END
+from GoM_Production as GP
+INNER JOIN Calendar as CL on GP.production_date=LI.production_date
+
+#############SQL Q3C--->Query the number of months for oil production less than 2 Billion######################################
+--Assumptions- Data is not specific for any date. Rather data is monthly wise. So I have given solution for months which had less
+oil production than 2 billions cubic feet.--------
+
+1.Calaculate monthly wise oil production.
+2.Filter dat from step 1 for oil volume less than 2 billion. 
+
+With Oil_production as(select SUM(GP.mon_oil_volume) as monthly_oil_volume, MONTH(GP.production_date)
+from GoM_Production as GP
+GROUP by MONTH(GP.production_date)
+ORDER by GP.production_date)
+
+select Count(*) from Oil_production as Op
+where Op.monthly_oil_volume < 2000000;
+
+#############SQL Q3D-->QUery to list Lease number which had 10K Volume in 2019 and at least 10 month oil production in 2020
+
+1.Get All the leasese who have above 10000 oil volme prodution in 2019 and grouped by monthly.
+2.Count the monthe whos oil production was at least in 10 months.
+3.Using the results from step 1. List all the leases for year 2020.
+
+
+With Avg_Oil_production as(select SUM(GP.mon_oil_volume) as monthly_oil_volume,GP.lease_number, MONTH(GP.production_date)
+from GoM_Production as GP
+WHERE AVG(monthly_oil_volume) > 10000 and YEAR(Gp.Production_Date)=2019
+GROUP by MONTH(GP.production_date),GP.lease_number
+
+SELECT GP.lease_number from Avg_Oil_production AS AOP
+inner join GoM_Production as GP 
+where YEAR(GP.production_date)=2020 and count(select Count(MONTH(GP.production_date)) from GoM_Production
+where GP.mon_oil_volume NOT NULL) > 10)
+
+=========================================================================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+insert into GoM_Production(Lease_Number,Production_Date,Product_Code,Mon_Oil_Volume,Mon_Gas_Volume,Operator_Number)
+values('16','2019-01-01','G',0,0,3151),
+   	('16',	'2019-01-01','O',1020,2265,3151),
+   	('G01848','2019-02-01','U',0,0,3295),
+   	('G01848','2019-02-01','O',35,	8196,1284),
+   	('G01848','2019-02-01','G',717, 95204,1978);

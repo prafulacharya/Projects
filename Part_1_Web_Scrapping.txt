@@ -1,0 +1,57 @@
+#Importing all the required lib's
+from bs4 import BeautifulSoup
+import os
+import time
+import requests
+import sys
+from urllib.parse import urljoin
+
+#If the data/files are updated, Clear the directory and then script should download the updated files.
+
+
+#I don't have complete solution for the Q1_4 part. 
+
+#But, using ETag: "<etag_value>" we can check wheater the resource is web is updated.
+#ETag works -- If in any url/wesite the content changes the Etag value must chnage.
+#So we can compare last Etag value with current and confirm wheater the changes had happened.
+
+#To remove un-necessary files in the directory you are working on. 
+import os
+import shutil
+
+for root, dirs, files in os.walk(r'C:\Download'):
+    for f in files:
+        os.unlink(os.path.join(root, f))
+    for d in dirs:
+        shutil.rmtree(os.path.join(root, d))
+
+
+#Url of the website where you want to web scrape the data files.
+url = 'https://www.data.bsee.gov/Main/OGOR-A.aspx'
+
+#CHeck for Download location. If there is no such folder, the script will create one automatically
+folder_location = r'C:\Download'
+if not os.path.exists(folder_location):os.mkdir(folder_location)
+
+page = requests.get(url)
+#To check the wheater the page is working.
+#print(page.status_code)
+
+response = requests.get(url)
+soup= BeautifulSoup(response.text, "html.parser")
+#Here downloading the files of 2019 and 2020 
+#We can make make generic just by giving condition a[href=.Zip] files.
+
+for link in soup.select("a[href$='2019delimit.zip']" and "a[href$='2020delimit.zip']" ):
+    #Name the pdf files using the last portion of each link which are unique in this case
+    filename = os.path.join(folder_location,link['href'].split('/')[-1])
+    with open(filename, 'wb') as f:
+        f.write(requests.get(urljoin(url,link['href'])).content)
+
+#By now we have two zipped files. 
+
+#If the data/files are updates, then script should download the updated files.
+
+
+
+
